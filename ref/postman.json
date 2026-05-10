@@ -1,0 +1,626 @@
+{
+	"info": {
+		"_postman_id": "scurry-gmail-api-v2",
+		"name": "🐿️ Scurry Gmail API",
+		"description": "Complete Gmail API with JWT authentication, email sending, tracking, and inbox reading.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://luaakserver.com/scurry_web",
+			"type": "string"
+		},
+		{
+			"key": "auth_url",
+			"value": "https://luaakserver.com/doccer/aibot/api",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "account_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Step 1 - Login (Get JWT Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.access_token) {",
+									"    pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+									"    console.log('✅ JWT Token saved!');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "navid",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "your_password",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{auth_url}}/auth/login",
+							"host": ["{{auth_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "⚡ RUN THIS FIRST!\n\nLogin to get JWT token. Token is automatically saved to collection variables.\n\nChange password to your actual password."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/user.php",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "user.php"]
+						},
+						"description": "Get current user info and Gmail connection status."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Gmail Connection",
+			"item": [
+				{
+					"name": "Get Gmail Auth URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/gmail/connect.php",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "gmail", "connect.php"]
+						},
+						"description": "Get Google OAuth URL.\n\n1. Copy the auth_url from response\n2. Open it in browser\n3. Authorize with Google\n4. Gmail will be connected!"
+					},
+					"response": []
+				},
+				{
+					"name": "Disconnect Gmail",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/gmail/disconnect.php?account_id={{account_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "gmail", "disconnect.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								}
+							]
+						},
+						"description": "Disconnect a Gmail account."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Email Accounts",
+			"item": [
+				{
+					"name": "Step 2 - List All Accounts",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data.accounts && jsonData.data.accounts.length > 0) {",
+									"    pm.collectionVariables.set('account_id', jsonData.data.accounts[0].id.toString());",
+									"    console.log('✅ Account ID saved: ' + jsonData.data.accounts[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/accounts.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "accounts.php"]
+						},
+						"description": "⚡ RUN THIS SECOND!\n\nList all connected Gmail accounts.\nAccount ID is automatically saved for other requests."
+					},
+					"response": []
+				},
+				{
+					"name": "Find Account by Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.success && jsonData.data.account_id) {",
+									"    pm.collectionVariables.set('account_id', jsonData.data.account_id.toString());",
+									"    console.log('✅ Account ID saved: ' + jsonData.data.account_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/accounts.php?email=navids92@gmail.com",
+							"host": ["{{base_url}}"],
+							"path": ["email", "accounts.php"],
+							"query": [
+								{
+									"key": "email",
+									"value": "navids92@gmail.com"
+								}
+							]
+						},
+						"description": "Find account by email address. Returns account_id for easy use."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Account by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/accounts.php?id={{account_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["email", "accounts.php"],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{account_id}}"
+								}
+							]
+						},
+						"description": "Get specific account by ID."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Send Email",
+			"item": [
+				{
+					"name": "Send Email (with tracking)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}},\n    \"to\": \"recipient@example.com\",\n    \"to_name\": \"John Doe\",\n    \"subject\": \"🐿️ Test Email from Scurry\",\n    \"body\": \"<h1>Hello!</h1><p>This is a test email from <strong>Scurry</strong>.</p><p><a href=\\\"https://scurry.ai\\\">Visit Scurry</a></p>\",\n    \"track_opens\": true,\n    \"track_clicks\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/email/send.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "send.php"]
+						},
+						"description": "Send email with open and click tracking.\n\nChange 'to' to actual recipient email!"
+					},
+					"response": []
+				},
+				{
+					"name": "Send Email (with CC/BCC)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}},\n    \"to\": \"recipient@example.com\",\n    \"to_name\": \"John Doe\",\n    \"cc\": [\"cc1@example.com\", \"cc2@example.com\"],\n    \"bcc\": [\"bcc@example.com\"],\n    \"subject\": \"🐿️ Email with CC and BCC\",\n    \"body\": \"<p>This email has CC and BCC recipients.</p>\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/email/send.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "send.php"]
+						},
+						"description": "Send email with CC and BCC recipients."
+					},
+					"response": []
+				},
+				{
+					"name": "Send Plain Text Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}},\n    \"to\": \"recipient@example.com\",\n    \"subject\": \"Plain Text Email\",\n    \"body\": \"This is a plain text email without HTML.\",\n    \"track_opens\": false,\n    \"track_clicks\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/email/send.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "send.php"]
+						},
+						"description": "Send plain text email without tracking."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Inbox (Read Emails)",
+			"item": [
+				{
+					"name": "List Inbox Emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								}
+							]
+						},
+						"description": "List recent emails from inbox (default 20)."
+					},
+					"response": []
+				},
+				{
+					"name": "List with Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "List emails with custom limit (max 100)."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&q=from:someone@example.com",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "q",
+									"value": "from:someone@example.com"
+								}
+							]
+						},
+						"description": "Search emails using Gmail query syntax.\n\nExamples:\n- from:john@example.com\n- subject:invoice\n- is:unread\n- has:attachment\n- after:2026/01/01"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter by Label - SENT",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&label=SENT",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "label",
+									"value": "SENT"
+								}
+							]
+						},
+						"description": "Get sent emails.\n\nAvailable labels: INBOX, SENT, STARRED, UNREAD, IMPORTANT, TRASH, SPAM"
+					},
+					"response": []
+				},
+				{
+					"name": "Filter by Label - UNREAD",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&label=UNREAD",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "label",
+									"value": "UNREAD"
+								}
+							]
+						},
+						"description": "Get unread emails only."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Email (Full Content)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&message_id=YOUR_MESSAGE_ID_HERE",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "message_id",
+									"value": "YOUR_MESSAGE_ID_HERE"
+								}
+							]
+						},
+						"description": "Get full email content by message ID.\n\nGet message_id from listing response, then replace YOUR_MESSAGE_ID_HERE.\n\nReturns: body_text, body_html, attachments"
+					},
+					"response": []
+				},
+				{
+					"name": "Pagination (Next Page)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&page_token=YOUR_PAGE_TOKEN",
+							"host": ["{{base_url}}"],
+							"path": ["email", "inbox.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								},
+								{
+									"key": "page_token",
+									"value": "YOUR_PAGE_TOKEN"
+								}
+							]
+						},
+						"description": "Get next page of results.\n\nUse next_page_token from previous response."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Sent Emails (History)",
+			"item": [
+				{
+					"name": "List All Sent Emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"]
+						},
+						"description": "List all emails sent through Scurry with tracking stats."
+					},
+					"response": []
+				},
+				{
+					"name": "List by Account",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php?account_id={{account_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								}
+							]
+						},
+						"description": "List sent emails for specific Gmail account."
+					},
+					"response": []
+				},
+				{
+					"name": "List by Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php?status=sent",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"],
+							"query": [
+								{
+									"key": "status",
+									"value": "sent"
+								}
+							]
+						},
+						"description": "Filter by status: sent, failed, pending"
+					},
+					"response": []
+				},
+				{
+					"name": "List with Pagination",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Paginated list of sent emails."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Tracking & Analytics",
+			"item": [
+				{
+					"name": "Get Overall Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/track/stats.php",
+							"host": ["{{base_url}}"],
+							"path": ["track", "stats.php"]
+						},
+						"description": "Get overall tracking statistics (total opens, clicks, rates)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Stats for Single Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/track/stats.php?email_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["track", "stats.php"],
+							"query": [
+								{
+									"key": "email_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get tracking stats for a specific email.\n\nGet email_id from sent emails list."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tracking Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/track/events.php?email_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["track", "events.php"],
+							"query": [
+								{
+									"key": "email_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get individual tracking events (opens, clicks) with IP address and user-agent."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,170 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: preview_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-aibot}
+      POSTGRES_USER: ${POSTGRES_USER:-aibot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-preview_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - preview_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aibot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: preview_redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - preview_network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: preview_backend
+    ports:
+      - "9000:9000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aibot}:${POSTGRES_PASSWORD:-preview_pass}@postgres:5432/${POSTGRES_DB:-aibot}
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      FIREFLIES_API_URL: ${FIREFLIES_API_URL:-https://api.fireflies.ai/graphql}
+      DEPLOYMENT_MODE: preview
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      USE_SSL: "false"
+      GMAIL_API_BASE_URL: http://scurry-email
+      GMAIL_AUTH_URL: http://backend:9000/api
+      OUTLOOK_API_BASE_URL: http://scurry-email/outlook
+      OUTLOOK_AUTH_URL: http://backend:9000/api
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_ENVIRONMENT: ${PADDLE_ENVIRONMENT:-sandbox}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN:-}
+      PADDLE_PRICE_OAK_MONTHLY: ${PADDLE_PRICE_OAK_MONTHLY:-}
+      PADDLE_PRICE_OAK_ANNUAL: ${PADDLE_PRICE_OAK_ANNUAL:-}
+      PADDLE_PRICE_REDWOOD_MONTHLY: ${PADDLE_PRICE_REDWOOD_MONTHLY:-}
+      PADDLE_PRICE_REDWOOD_ANNUAL: ${PADDLE_PRICE_REDWOOD_ANNUAL:-}
+      PADDLE_PRICE_ACORNS_500: ${PADDLE_PRICE_ACORNS_500:-}
+      PADDLE_PRICE_ACORNS_1750: ${PADDLE_PRICE_ACORNS_1750:-}
+      PADDLE_PRICE_ACORNS_4000: ${PADDLE_PRICE_ACORNS_4000:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-noreply@scurry.so}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      scurry-email:
+        condition: service_healthy
+    networks:
+      - preview_network
+    restart: unless-stopped
+    command: sh -c "python migrate.py && python seed_preview.py && uvicorn main:socket_app --host 0.0.0.0 --port 9000"
+
+  pipedrive-worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: preview_pipedrive_worker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aibot}:${POSTGRES_PASSWORD:-preview_pass}@postgres:5432/${POSTGRES_DB:-aibot}
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      PIPEDRIVE_SYNC_INTERVAL: ${PIPEDRIVE_SYNC_INTERVAL:-300}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - preview_network
+    restart: unless-stopped
+    command: python pipedrive_worker.py
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-90000}
+    container_name: preview_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-/api}
+      VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-90000}
+    depends_on:
+      - backend
+    networks:
+      - preview_network
+    restart: unless-stopped
+
+  scurry-email:
+    build: ../services/scurry-email
+    container_name: preview_scurry_email
+    ports:
+      - "8080:80"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-aibot}
+      DB_USER: ${POSTGRES_USER:-aibot}
+      DB_PASS: ${POSTGRES_PASSWORD:-preview_pass}
+      AUTH_API_URL: http://backend:9000/auth/me
+      JWT_VERIFY_METHOD: api
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      MICROSOFT_REDIRECT_URI: ${MICROSOFT_REDIRECT_URI:-}
+      MICROSOFT_TENANT: ${MICROSOFT_TENANT:-common}
+      SCURRY_APP_URL: ${SCURRY_APP_URL}
+      SCURRY_OUTLOOK_APP_URL: ${SCURRY_OUTLOOK_APP_URL}
+      SCURRY_ENCRYPTION_KEY: ${SCURRY_ENCRYPTION_KEY}
+      CORS_ALLOWED_ORIGINS: "*"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - preview_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/test.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  preview_network:
+    driver: bridge

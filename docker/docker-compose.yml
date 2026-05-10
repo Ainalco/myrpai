@@ -1,0 +1,156 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: workflow_platform
+      POSTGRES_USER: workflow_user
+      POSTGRES_PASSWORD: workflow_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workflow_user -d workflow_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ../backend
+    # For development, we keep the port exposed for direct API testing
+    # In production, this should be removed
+    ports:
+      - "9000:9000"
+    environment:
+      - DATABASE_URL=postgresql://workflow_user:workflow_pass@postgres:5432/workflow_platform
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - FIREFLIES_API_URL=${FIREFLIES_API_URL:-https://api.fireflies.ai/graphql}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-045xuFbbfRwgqVR69HjzZwQA6672gDSJzHMTNJMOGMs=}
+      - DEPLOYMENT_MODE=development
+      - DOMAIN_NAME=${DOMAIN_NAME:-localhost:3000}
+      - USE_SSL=${USE_SSL:-false}
+      # Scurry email service URLs (local Docker service)
+      - GMAIL_API_BASE_URL=http://scurry-email
+      - GMAIL_AUTH_URL=http://backend:9000/api
+      - OUTLOOK_API_BASE_URL=http://scurry-email/outlook
+      - OUTLOOK_AUTH_URL=http://backend:9000/api
+      # Paddle billing
+      - PADDLE_API_KEY=${PADDLE_API_KEY:-}
+      - PADDLE_ENVIRONMENT=${PADDLE_ENVIRONMENT:-sandbox}
+      - PADDLE_WEBHOOK_SECRET=${PADDLE_WEBHOOK_SECRET:-}
+      - PADDLE_CLIENT_TOKEN=${PADDLE_CLIENT_TOKEN:-}
+      # Cloudflare R2 storage
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID:-}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY:-}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-}
+      # Resend (transactional email fallback)
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@scurry.so}
+      - PADDLE_PRICE_OAK_MONTHLY=${PADDLE_PRICE_OAK_MONTHLY:-}
+      - PADDLE_PRICE_OAK_ANNUAL=${PADDLE_PRICE_OAK_ANNUAL:-}
+      - PADDLE_PRICE_REDWOOD_MONTHLY=${PADDLE_PRICE_REDWOOD_MONTHLY:-}
+      - PADDLE_PRICE_REDWOOD_ANNUAL=${PADDLE_PRICE_REDWOOD_ANNUAL:-}
+      - PADDLE_PRICE_ACORNS_500=${PADDLE_PRICE_ACORNS_500:-}
+      - PADDLE_PRICE_ACORNS_1750=${PADDLE_PRICE_ACORNS_1750:-}
+      - PADDLE_PRICE_ACORNS_4000=${PADDLE_PRICE_ACORNS_4000:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      scurry-email:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+    command: bash start.sh
+
+  pipedrive-worker:
+    build: ../backend
+    environment:
+      - DATABASE_URL=postgresql://workflow_user:workflow_pass@postgres:5432/workflow_platform
+      - REDIS_URL=redis://redis:6379
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-045xuFbbfRwgqVR69HjzZwQA6672gDSJzHMTNJMOGMs=}
+      - PIPEDRIVE_SYNC_INTERVAL=${PIPEDRIVE_SYNC_INTERVAL:-300}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../backend:/app
+    command: python pipedrive_worker.py
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_API_URL=/api
+      - VITE_API_TIMEOUT=${VITE_API_TIMEOUT:-90000}
+
+  scurry-email:
+    build: ../services/scurry-email
+    environment:
+      # Database (shared PostgreSQL)
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=workflow_platform
+      - DB_USER=workflow_user
+      - DB_PASS=workflow_pass
+      # JWT Auth (validates against backend)
+      - AUTH_API_URL=http://backend:9000/auth/me
+      - JWT_VERIFY_METHOD=api
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-}
+      # Microsoft OAuth
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID:-}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET:-}
+      - MICROSOFT_REDIRECT_URI=${MICROSOFT_REDIRECT_URI:-}
+      - MICROSOFT_TENANT=${MICROSOFT_TENANT:-common}
+      # App URLs
+      - SCURRY_APP_URL=${SCURRY_APP_URL:-http://localhost:8080}
+      - SCURRY_OUTLOOK_APP_URL=${SCURRY_OUTLOOK_APP_URL:-http://localhost:8080/outlook}
+      # Encryption
+      - SCURRY_ENCRYPTION_KEY=${SCURRY_ENCRYPTION_KEY:-}
+      - CORS_ALLOWED_ORIGINS=*
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/test.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,167 @@
+{
+	"info": {
+		"name": "🐿️ Scurry Outlook API (Standalone)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://luaakserver.com/scurry_web/outlook"
+		},
+		{
+			"key": "auth_url",
+			"value": "https://luaakserver.com/doccer/aibot/api"
+		},
+		{
+			"key": "jwt_token",
+			"value": ""
+		},
+		{
+			"key": "account_id",
+			"value": "1"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [{"key": "token", "value": "{{jwt_token}}"}]
+	},
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Step 1 - Login",
+					"event": [{"listen": "test", "script": {"exec": ["var jsonData = pm.response.json();", "if (jsonData.access_token) { pm.collectionVariables.set('jwt_token', jsonData.access_token); }"]}}],
+					"request": {
+						"auth": {"type": "noauth"},
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+						"body": {"mode": "urlencoded", "urlencoded": [{"key": "username", "value": "navid"}, {"key": "password", "value": "your_password"}]},
+						"url": {"raw": "{{auth_url}}/auth/login", "host": ["{{auth_url}}"], "path": ["auth", "login"]}
+					}
+				},
+				{
+					"name": "Get Current User",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/auth/user.php", "host": ["{{base_url}}"], "path": ["auth", "user.php"]}}
+				}
+			]
+		},
+		{
+			"name": "2. Outlook Connection",
+			"item": [
+				{
+					"name": "Get OAuth URL",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/auth/connect.php", "host": ["{{base_url}}"], "path": ["auth", "connect.php"]}}
+				},
+				{
+					"name": "Disconnect",
+					"request": {"method": "POST", "url": {"raw": "{{base_url}}/auth/disconnect.php?account_id={{account_id}}", "host": ["{{base_url}}"], "path": ["auth", "disconnect.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}]}}
+				}
+			]
+		},
+		{
+			"name": "3. Accounts",
+			"item": [
+				{
+					"name": "Step 2 - List Accounts",
+					"event": [{"listen": "test", "script": {"exec": ["var jsonData = pm.response.json();", "if (jsonData.success && jsonData.data.accounts && jsonData.data.accounts.length > 0) { pm.collectionVariables.set('account_id', jsonData.data.accounts[0].id.toString()); }"]}}],
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/accounts.php", "host": ["{{base_url}}"], "path": ["email", "accounts.php"]}}
+				},
+				{
+					"name": "Find by Email",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/accounts.php?email=your@outlook.com", "host": ["{{base_url}}"], "path": ["email", "accounts.php"], "query": [{"key": "email", "value": "your@outlook.com"}]}}
+				},
+				{
+					"name": "Get by ID",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/accounts.php?id={{account_id}}", "host": ["{{base_url}}"], "path": ["email", "accounts.php"], "query": [{"key": "id", "value": "{{account_id}}"}]}}
+				}
+			]
+		},
+		{
+			"name": "4. Send Email",
+			"item": [
+				{
+					"name": "Send with Tracking",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {"mode": "raw", "raw": "{\n  \"account_id\": {{account_id}},\n  \"to\": \"recipient@example.com\",\n  \"to_name\": \"John Doe\",\n  \"subject\": \"🐿️ Test from Scurry Outlook\",\n  \"body\": \"<h1>Hello!</h1><p>Test email via <strong>Outlook</strong>.</p><p><a href=\\\"https://scurry.ai\\\">Visit Scurry</a></p>\",\n  \"track_opens\": true,\n  \"track_clicks\": true\n}"},
+						"url": {"raw": "{{base_url}}/email/send.php", "host": ["{{base_url}}"], "path": ["email", "send.php"]}
+					}
+				},
+				{
+					"name": "Send with CC/BCC",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {"mode": "raw", "raw": "{\n  \"account_id\": {{account_id}},\n  \"to\": \"recipient@example.com\",\n  \"cc\": [\"cc@example.com\"],\n  \"bcc\": [\"bcc@example.com\"],\n  \"subject\": \"Email with CC/BCC\",\n  \"body\": \"<p>Has CC and BCC.</p>\"\n}"},
+						"url": {"raw": "{{base_url}}/email/send.php", "host": ["{{base_url}}"], "path": ["email", "send.php"]}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Inbox",
+			"item": [
+				{
+					"name": "List Inbox",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}]}}
+				},
+				{
+					"name": "With Limit",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&limit=10", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}, {"key": "limit", "value": "10"}]}}
+				},
+				{
+					"name": "Search",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&search=invoice", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}, {"key": "search", "value": "invoice"}]}}
+				},
+				{
+					"name": "Folder - Sent",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&folder=sent", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}, {"key": "folder", "value": "sent"}]}}
+				},
+				{
+					"name": "Unread Only",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&filter=isRead eq false", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}, {"key": "filter", "value": "isRead eq false"}]}}
+				},
+				{
+					"name": "Get Single Email",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/inbox.php?account_id={{account_id}}&message_id=MESSAGE_ID_HERE", "host": ["{{base_url}}"], "path": ["email", "inbox.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}, {"key": "message_id", "value": "MESSAGE_ID_HERE"}]}}
+				}
+			]
+		},
+		{
+			"name": "6. Sent History",
+			"item": [
+				{
+					"name": "List All",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/sent.php", "host": ["{{base_url}}"], "path": ["email", "sent.php"]}}
+				},
+				{
+					"name": "By Account",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/sent.php?account_id={{account_id}}", "host": ["{{base_url}}"], "path": ["email", "sent.php"], "query": [{"key": "account_id", "value": "{{account_id}}"}]}}
+				},
+				{
+					"name": "By Status",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/email/sent.php?status=sent", "host": ["{{base_url}}"], "path": ["email", "sent.php"], "query": [{"key": "status", "value": "sent"}]}}
+				}
+			]
+		},
+		{
+			"name": "7. Tracking",
+			"item": [
+				{
+					"name": "Overall Stats",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/track/stats.php", "host": ["{{base_url}}"], "path": ["track", "stats.php"]}}
+				},
+				{
+					"name": "Email Stats",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/track/stats.php?email_id=1", "host": ["{{base_url}}"], "path": ["track", "stats.php"], "query": [{"key": "email_id", "value": "1"}]}}
+				},
+				{
+					"name": "Events",
+					"request": {"method": "GET", "url": {"raw": "{{base_url}}/track/events.php?email_id=1", "host": ["{{base_url}}"], "path": ["track", "events.php"], "query": [{"key": "email_id", "value": "1"}]}}
+				}
+			]
+		}
+	]
+}

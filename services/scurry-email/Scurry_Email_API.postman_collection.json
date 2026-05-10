@@ -1,0 +1,264 @@
+{
+	"info": {
+		"_postman_id": "scurry-email-api-2025",
+		"name": "🐿️ Scurry Email API",
+		"description": "Gmail OAuth & Email Sending API for Scurry.ai",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "https://luaakserver.com/scurry_web",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "account_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "1. Get Gmail Auth URL",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/gmail/connect.php?user_id={{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "gmail", "connect.php"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "Get Google OAuth URL. Open the returned auth_url in browser to authorize Gmail account."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Disconnect Gmail Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/gmail/disconnect.php",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "gmail", "disconnect.php"]
+						},
+						"description": "Disconnect/deactivate a Gmail account"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Accounts",
+			"item": [
+				{
+					"name": "List Email Accounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/accounts.php?user_id={{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["email", "accounts.php"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								}
+							]
+						},
+						"description": "List all connected email accounts for a user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Single Account",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/account.php?account_id={{account_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["email", "account.php"],
+							"query": [
+								{
+									"key": "account_id",
+									"value": "{{account_id}}"
+								}
+							]
+						},
+						"description": "Get details of a single email account"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Email",
+			"item": [
+				{
+					"name": "Send Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}},\n    \"to\": \"recipient@example.com\",\n    \"to_name\": \"Recipient Name\",\n    \"subject\": \"🐿️ Hello from Scurry!\",\n    \"body_html\": \"<h1>Hello!</h1><p>This email was sent via Scurry API.</p>\",\n    \"body_text\": \"Hello! This email was sent via Scurry API.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/email/send.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "send.php"]
+						},
+						"description": "Send an email using connected Gmail account"
+					},
+					"response": []
+				},
+				{
+					"name": "Send Email with CC/BCC",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"account_id\": {{account_id}},\n    \"to\": \"recipient@example.com\",\n    \"to_name\": \"Recipient Name\",\n    \"cc\": [\"cc1@example.com\", \"cc2@example.com\"],\n    \"bcc\": [\"bcc@example.com\"],\n    \"subject\": \"Meeting Follow-up\",\n    \"body_html\": \"<p>Hi team,</p><p>Following up on our meeting...</p>\",\n    \"body_text\": \"Hi team, Following up on our meeting...\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/email/send.php",
+							"host": ["{{base_url}}"],
+							"path": ["email", "send.php"]
+						},
+						"description": "Send email with CC and BCC recipients"
+					},
+					"response": []
+				},
+				{
+					"name": "List Sent Emails",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php?user_id={{user_id}}&limit=50&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all sent emails for a user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sent Email by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/email/sent.php?email_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["email", "sent.php"],
+							"query": [
+								{
+									"key": "email_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get a single sent email by ID"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tracking",
+			"item": [
+				{
+					"name": "Get Email Tracking Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/track/stats.php?email_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["track", "stats.php"],
+							"query": [
+								{
+									"key": "email_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get tracking stats (opens, clicks) for an email"
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Tracking Events",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/track/events.php?email_id=1",
+							"host": ["{{base_url}}"],
+							"path": ["track", "events.php"],
+							"query": [
+								{
+									"key": "email_id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get all tracking events for an email"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,144 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@400;500;600;700&family=Space+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Scurry Brand Theme */
+    --background: 48 100% 94%;           /* Foam #FFF8E1 */
+    --foreground: 11 26% 19%;            /* Espresso #3E2723 */
+    --card: 0 0% 100%;                   /* White */
+    --card-foreground: 11 26% 19%;       /* Espresso */
+    --popover: 0 0% 100%;
+    --popover-foreground: 11 26% 19%;    /* Espresso */
+    --primary: 14 100% 57%;              /* Hyper Orange #FF5722 */
+    --primary-foreground: 0 0% 100%;     /* White */
+    --secondary: 36 100% 94%;            /* Orange Light #FFF3E0 */
+    --secondary-foreground: 11 26% 19%;  /* Espresso */
+    --muted: 0 0% 96%;                   /* Light Gray #F5F5F5 */
+    --muted-foreground: 0 0% 46%;        /* Secondary Text #757575 */
+    --accent: 36 100% 94%;               /* Orange Light #FFF3E0 */
+    --accent-foreground: 11 26% 19%;     /* Espresso */
+    --destructive: 4 90% 58%;            /* Red #F44336 */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 0 0% 88%;                  /* Borders #E0E0E0 */
+    --input: 0 0% 88%;                   /* Borders #E0E0E0 */
+    --ring: 14 100% 57%;                 /* Hyper Orange #FF5722 */
+    --radius: 0.5rem;
+
+    /* Scurry Brand Colors (raw values) */
+    --scurry-hyper-orange: #FF5722;
+    --scurry-orange-hover: #E64A19;
+    --scurry-orange-light: #FFF3E0;
+    --scurry-espresso: #3E2723;
+    --scurry-latte: #795548;
+    --scurry-foam: #FFF8E1;
+    --scurry-energy-burst: #FFC107;
+    --scurry-go-green: #4CAF50;
+    --scurry-green-light: #E8F5E9;
+    --scurry-red: #F44336;
+    --scurry-red-light: #FFEBEE;
+    --scurry-blue-bg: #E3F2FD;
+    --scurry-blue-text: #1976D2;
+    --scurry-gray-light: #F5F5F5;
+    --scurry-gray-border: #E0E0E0;
+    --scurry-gray-muted: #9E9E9E;
+    --scurry-gray-secondary: #757575;
+  }
+
+  .dark {
+    /* Scurry Dark Theme */
+    --background: 11 26% 12%;            /* Darker Espresso */
+    --foreground: 48 100% 94%;           /* Foam */
+    --card: 11 26% 16%;                  /* Dark Espresso */
+    --card-foreground: 48 100% 94%;      /* Foam */
+    --popover: 11 26% 16%;
+    --popover-foreground: 48 100% 94%;   /* Foam */
+    --primary: 14 100% 57%;              /* Hyper Orange #FF5722 */
+    --primary-foreground: 0 0% 100%;     /* White */
+    --secondary: 11 26% 22%;             /* Lighter Espresso */
+    --secondary-foreground: 48 100% 94%; /* Foam */
+    --muted: 11 26% 22%;
+    --muted-foreground: 0 0% 62%;        /* Muted Text #9E9E9E */
+    --accent: 11 26% 22%;
+    --accent-foreground: 48 100% 94%;    /* Foam */
+    --destructive: 4 90% 50%;            /* Red darker */
+    --destructive-foreground: 0 0% 100%; /* White */
+    --border: 11 26% 25%;
+    --input: 11 26% 25%;
+    --ring: 14 100% 57%;                 /* Hyper Orange */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles for the workflow platform */
+.workflow-canvas {
+  background-color: var(--scurry-foam);
+  background-image: radial-gradient(circle, var(--scurry-latte) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.component-card {
+  @apply bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200;
+  border: 1px solid var(--scurry-gray-border);
+}
+
+.component-card.dragging {
+  @apply shadow-lg opacity-75;
+}
+
+.connection-line {
+  stroke: var(--scurry-latte);
+  stroke-width: 2;
+  fill: none;
+  marker-end: url(#arrowhead);
+}
+
+.status-dot {
+  @apply w-2 h-2 rounded-full;
+}
+
+.status-dot.success {
+  background-color: var(--scurry-go-green);
+}
+
+.status-dot.warning {
+  background-color: var(--scurry-energy-burst);
+}
+
+.status-dot.error {
+  background-color: var(--scurry-red);
+}
+
+.status-dot.running {
+  background-color: var(--scurry-energy-burst);
+  @apply animate-pulse;
+}
+
+/* Scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scurry-foam);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scurry-latte);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scurry-espresso);
+}

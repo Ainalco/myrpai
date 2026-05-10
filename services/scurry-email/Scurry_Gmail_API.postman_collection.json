@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "🐿️ Scurry Gmail API",
+    "description": "Gmail API with JWT authentication and email tracking",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://luaakserver.com/scurry_web"
+    },
+    {
+      "key": "auth_url",
+      "value": "https://luaakserver.com/doccer/aibot/api"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "account_id",
+      "value": "1"
+    },
+    {
+      "key": "email_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Get JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.access_token);",
+                  "    console.log('Token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"navid\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "{{auth_url}}/auth/login",
+              "host": ["{{auth_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login to your existing auth system to get JWT token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/user.php",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "user.php"]
+            },
+            "description": "Get current user info and Gmail connection status"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Gmail Connection",
+      "item": [
+        {
+          "name": "Connect Gmail (Get Auth URL)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/gmail/connect.php",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "gmail", "connect.php"]
+            },
+            "description": "Get Google OAuth URL. Open the auth_url in browser to authorize."
+          },
+          "response": []
+        },
+        {
+          "name": "List Email Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.accounts && jsonData.data.accounts.length > 0) {",
+                  "    pm.collectionVariables.set('account_id', jsonData.data.accounts[0].id);",
+                  "    console.log('Account ID saved: ' + jsonData.data.accounts[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/email/accounts.php",
+              "host": ["{{base_url}}"],
+              "path": ["email", "accounts.php"]
+            },
+            "description": "List all connected Gmail accounts"
+          },
+          "response": []
+        },
+        {
+          "name": "Disconnect Gmail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_id\": {{account_id}}\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/gmail/disconnect.php",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "gmail", "disconnect.php"]
+            },
+            "description": "Disconnect/deactivate a Gmail account"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Send Email",
+      "item": [
+        {
+          "name": "Send Email (with tracking)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.data && jsonData.data.email_id) {",
+                  "    pm.collectionVariables.set('email_id', jsonData.data.email_id);",
+                  "    console.log('Email ID saved: ' + jsonData.data.email_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_id\": {{account_id}},\n  \"to\": \"recipient@example.com\",\n  \"to_name\": \"John Doe\",\n  \"subject\": \"🐿️ Test Email from Scurry\",\n  \"body_html\": \"<h1>Hello!</h1><p>This is a test email from <strong>Scurry</strong>.</p><p><a href=\\\"https://scurry.ai\\\">Visit Scurry</a></p>\",\n  \"track_opens\": true,\n  \"track_clicks\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/email/send.php",
+              "host": ["{{base_url}}"],
+              "path": ["email", "send.php"]
+            },
+            "description": "Send email with open and click tracking"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Email (with CC/BCC)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_id\": {{account_id}},\n  \"to\": \"recipient@example.com\",\n  \"to_name\": \"John Doe\",\n  \"subject\": \"Meeting Follow-up\",\n  \"body_html\": \"<p>Thanks for the meeting!</p>\",\n  \"cc\": [\"cc1@example.com\", \"cc2@example.com\"],\n  \"bcc\": [\"bcc@example.com\"],\n  \"track_opens\": true,\n  \"track_clicks\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/email/send.php",
+              "host": ["{{base_url}}"],
+              "path": ["email", "send.php"]
+            },
+            "description": "Send email with CC and BCC recipients"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Email (no tracking)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"account_id\": {{account_id}},\n  \"to\": \"recipient@example.com\",\n  \"subject\": \"Private Email\",\n  \"body_html\": \"<p>This email has no tracking.</p>\",\n  \"track_opens\": false,\n  \"track_clicks\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/email/send.php",
+              "host": ["{{base_url}}"],
+              "path": ["email", "send.php"]
+            },
+            "description": "Send email without tracking"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Sent Emails",
+      "item": [
+        {
+          "name": "List All Sent Emails",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/email/sent.php",
+              "host": ["{{base_url}}"],
+              "path": ["email", "sent.php"]
+            },
+            "description": "List all sent emails"
+          },
+          "response": []
+        },
+        {
+          "name": "List Sent Emails (filtered)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/email/sent.php?account_id={{account_id}}&status=sent&limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["email", "sent.php"],
+              "query": [
+                { "key": "account_id", "value": "{{account_id}}" },
+                { "key": "status", "value": "sent" },
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "List sent emails with filters"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Tracking & Analytics",
+      "item": [
+        {
+          "name": "Get Overall Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/track/stats.php?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["track", "stats.php"],
+              "query": [
+                { "key": "days", "value": "30" }
+              ]
+            },
+            "description": "Get overall email statistics for last N days"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Stats for Specific Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/track/stats.php?email_id={{email_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["track", "stats.php"],
+              "query": [
+                { "key": "email_id", "value": "{{email_id}}" }
+              ]
+            },
+            "description": "Get open/click stats for specific email"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tracking Events",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/track/events.php?email_id={{email_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["track", "events.php"],
+              "query": [
+                { "key": "email_id", "value": "{{email_id}}" }
+              ]
+            },
+            "description": "Get individual tracking events (opens, clicks)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Click Events Only",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/track/events.php?email_id={{email_id}}&event_type=click",
+              "host": ["{{base_url}}"],
+              "path": ["track", "events.php"],
+              "query": [
+                { "key": "email_id", "value": "{{email_id}}" },
+                { "key": "event_type", "value": "click" }
+              ]
+            },
+            "description": "Get only click events for an email"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Test Tracking (Open in Browser)",
+      "item": [
+        {
+          "name": "Test Open Pixel (returns 1x1 GIF)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/track/open.php?id={{email_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["track", "open.php"],
+              "query": [
+                { "key": "id", "value": "{{email_id}}" }
+              ]
+            },
+            "description": "Test open tracking - returns 1x1 transparent GIF"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Click Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/track/click.php?id={{email_id}}&url=https://scurry.ai",
+              "host": ["{{base_url}}"],
+              "path": ["track", "click.php"],
+              "query": [
+                { "key": "id", "value": "{{email_id}}" },
+                { "key": "url", "value": "https://scurry.ai" }
+              ]
+            },
+            "description": "Test click tracking - logs click and redirects to URL"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

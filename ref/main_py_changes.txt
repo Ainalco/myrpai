@@ -1,0 +1,32 @@
+# ============================================================================
+# MAIN.PY CHANGES
+# Add these 2 lines to your backend/main.py file
+# ============================================================================
+
+# STEP 1: Add this import near the top with the other router imports (around line 18)
+# 
+# Find this line:
+#     from email_queue import router as email_queue_router
+# 
+# Add this line AFTER it:
+from email_sequences import router as email_sequences_router
+
+
+# STEP 2: Add this router registration (around line 87, after the email_queue_router line)
+#
+# Find this line:
+#     app.include_router(email_queue_router, prefix="/emails", tags=["Email Queue"])
+#
+# Add this line AFTER it:
+app.include_router(email_sequences_router, prefix="/email-sequences", tags=["Email Sequences"])
+
+
+# ============================================================================
+# THAT'S IT! Just 2 lines to add.
+# ============================================================================
+#
+# After adding these lines, restart your server and test:
+#     curl http://localhost:9000/email-sequences/test
+#
+# Should return: {"status": "Email sequences router working!"}
+# ============================================================================
