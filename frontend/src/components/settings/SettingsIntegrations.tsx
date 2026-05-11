@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiKeyApi, ApiKeyInfo, authApi, gmailApiService, outlookApiService, twilioApi } from '@/lib/api'
+import { apiKeyApi, ApiKeyInfo, authApi, gmailApiService, outlookApiService, twilioApi, whatsappApi } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -166,8 +166,8 @@ const IntegrationCard: React.FC<{
       {testResult && (
         <div
           className={`flex items-start gap-2 p-3 rounded-lg mb-3.5 text-sm ${testResult.success
-              ? 'bg-green-50 border border-green-200 text-green-700'
-              : 'bg-red-50 border border-red-200 text-red-700'
+            ? 'bg-green-50 border border-green-200 text-green-700'
+            : 'bg-red-50 border border-red-200 text-red-700'
             }`}
         >
           {testResult.success ? (
@@ -314,6 +314,135 @@ const TwilioIntegrationCard: React.FC = () => {
       >
         {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Twilio Settings'}
       </button>
+    </div>
+  )
+}
+
+const WhatsAppIntegrationCard: React.FC = () => {
+  const [phoneNumberId, setPhoneNumberId] = useState('')
+  const [businessAccountId, setBusinessAccountId] = useState('')
+  const [accessToken, setAccessToken] = useState('')
+  const [webhookVerifyToken, setWebhookVerifyToken] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const { toast } = useToast()
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      whatsappApi.saveSettings({
+        phone_number_id: phoneNumberId,
+        business_account_id: businessAccountId || undefined,
+        access_token: accessToken,
+        webhook_verify_token: webhookVerifyToken,
+      }),
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'WhatsApp settings saved successfully' })
+      setPhoneNumberId('')
+      setBusinessAccountId('')
+      setAccessToken('')
+      setWebhookVerifyToken('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to save WhatsApp settings',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-[10px] p-5 sm:p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-scurry-orange text-base">💬</span>
+        <span className="font-bold text-[15px]">WhatsApp Business</span>
+      </div>
+
+      <p className="text-sm text-gray-500 mb-4">
+        Connect WhatsApp Business Cloud API to send approved WhatsApp follow-ups.
+      </p>
+
+      <div className="space-y-3.5">
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Phone Number ID
+          </label>
+          <input
+            type="text"
+            value={phoneNumberId}
+            onChange={(e) => setPhoneNumberId(e.target.value)}
+            placeholder="Meta Phone Number ID"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Business Account ID
+          </label>
+          <input
+            type="text"
+            value={businessAccountId}
+            onChange={(e) => setBusinessAccountId(e.target.value)}
+            placeholder="WhatsApp Business Account ID"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Access Token
+          </label>
+          <div className="relative">
+            <input
+              type={showToken ? 'text' : 'password'}
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="Meta access token"
+              className="w-full px-3 py-2 pr-9 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+            />
+            <button
+              onClick={() => setShowToken(!showToken)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              type="button"
+            >
+              {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Webhook Verify Token
+          </label>
+          <input
+            type="text"
+            value={webhookVerifyToken}
+            onChange={(e) => setWebhookVerifyToken(e.target.value)}
+            placeholder="A private verify token you also set in backend env"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={() => saveMutation.mutate()}
+        disabled={
+          saveMutation.isPending ||
+          !phoneNumberId.trim() ||
+          !accessToken.trim() ||
+          !webhookVerifyToken.trim()
+        }
+        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-scurry-orange text-white text-sm font-semibold rounded-lg hover:bg-scurry-orange-hover disabled:opacity-50 transition-colors"
+      >
+        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save WhatsApp Settings'}
+      </button>
+
+      <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+        Meta webhook URL should point to your backend route:
+        <div className="font-mono text-xs mt-1">
+          https://your-backend-domain.com/whatsapp/webhook
+        </div>
+      </div>
     </div>
   )
 }
@@ -497,6 +626,7 @@ const SettingsIntegrations: React.FC = () => {
         />
       ))}
       <TwilioIntegrationCard />
+      <WhatsAppIntegrationCard />
 
       {/* Email Settings */}
       <div className="text-base font-bold mt-2 mb-4">Email Settings</div>

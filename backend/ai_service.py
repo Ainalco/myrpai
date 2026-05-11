@@ -318,6 +318,77 @@ HARD CONSTRAINTS:
 
     return result["content"][0]["text"].strip()
 
+async def generate_whatsapp_message(
+    prompt: str,
+    input_data: Dict[str, Any],
+    max_chars: int = 4096,
+    workflow_id: Optional[int] = None,
+    db: Optional[Session] = None,
+) -> str:
+    set_usage_task("WhatsApp Generation")
+
+    api_key = get_claude_client()
+    model = get_active_model()
+    data_str = json.dumps(input_data, indent=2, default=str)
+
+    system_prompt = f"""
+You are writing a business follow-up WhatsApp message.
+
+CHANNEL: WhatsApp
+CONSTRAINTS:
+- Maximum {max_chars} characters, but aim for 200-500 characters.
+- Conversational, not email-like.
+- No subject line.
+- Open with the person's name or a direct hook.
+- WhatsApp formatting is allowed: *bold*, _italic_, ~strikethrough~, ```monospace```.
+- Use line breaks for readability.
+- Short paragraphs.
+- Full URLs are allowed.
+- No formal sign-offs like "Best regards" or "Sincerely".
+- Emoji is acceptable where natural.
+- Tone: friendly, direct, casual professional.
+- Return only the WhatsApp message body.
+""".strip()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        payload = {
+            "model": model,
+            "max_tokens": 700,
+            "temperature": 0.4,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": system_prompt,
+                            "cache_control": {"type": "ephemeral"},
+                        },
+                        {
+                            "type": "text",
+                            "text": f"User WhatsApp instructions:\n{prompt}\n\nData:\n{data_str}",
+                        },
+                    ],
+                }
+            ],
+        }
+
+        response = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json=payload,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+    _accumulate_tokens(result)
+
+    return result["content"][0]["text"].strip()
+
 def get_claude_client():
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:

@@ -25,6 +25,7 @@ import ContactOrganizationsPage from "@/pages/ContactOrganizationsPage";
 import ContactPersonsPage from "@/pages/ContactPersonsPage";
 import DashboardPage from "@/pages/DashboardPage";
 import EmailQueuePage from "@/pages/EmailQueuePage";
+import WhatsAppQueuePage from "@/pages/WhatsAppQueuePage";
 import ResourcesPage from "@/pages/ResourcesPage";
 import LoginPage from "@/pages/LoginPage";
 import ProcessingDashboard from "@/pages/ProcessingDashboard";
@@ -226,6 +227,17 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <EmailQueuePage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/whatsapp"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <WhatsAppQueuePage />
                         </Layout>
                       </ProtectedRoute>
                     }

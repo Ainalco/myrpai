@@ -97,6 +97,66 @@ COMPONENT_TYPES = {
         "category": "action",
         "is_advanced": False,
     },
+    "whatsapp": {
+    "name": "WhatsApp Message",
+    "description": "Send AI-generated WhatsApp follow-ups via WhatsApp Business Cloud API",
+    "icon": "message-circle",
+    "category": "action",
+    "is_advanced": False,
+        "config_schema": {
+            "ai_prompt": {
+                "type": "textarea",
+                "label": "AI Instructions",
+                "placeholder": "Tell the AI what kind of WhatsApp message to write...",
+                "required": True,
+            },
+            "recipient_phone_field": {
+                "type": "text",
+                "label": "Recipient Phone Field",
+                "default": "recipient_phone",
+            },
+            "send_timing": {
+                "type": "select",
+                "options": ["immediate", "fixed_delay", "ai_decides"],
+                "default": "immediate",
+            },
+            "delay_config": {
+                "type": "object",
+                "fields": {
+                    "delay_hours": {"type": "number", "default": 0},
+                    "delay_days": {"type": "number", "default": 0},
+                    "business_hours_only": {"type": "toggle", "default": True},
+                },
+                "visible_when": {"send_timing": "fixed_delay"},
+            },
+            "ai_filter": {
+                "type": "toggle",
+                "label": "AI Quality Filter",
+                "default": True,
+            },
+            "timeline_check": {
+                "type": "toggle",
+                "label": "Timeline Check",
+                "default": True,
+            },
+            "message_style": {
+                "type": "select",
+                "label": "Message Style",
+                "options": ["conversational", "professional", "brief"],
+                "default": "conversational",
+            },
+            "fallback_template": {
+                "type": "select",
+                "label": "Template outside 24h window",
+                "options": [
+                    "meeting_followup_1",
+                    "meeting_followup_2",
+                    "meeting_followup_3",
+                ],
+                "default": "meeting_followup_1",
+            },
+        },
+    },
     "conditional_logic": {
         "name": "Conditional Logic",
         "description": "Filter based on conditions",
