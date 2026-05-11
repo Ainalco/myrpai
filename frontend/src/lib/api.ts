@@ -693,6 +693,18 @@ export const apiKeyApi = {
     }),
 }
 
+//twilioApi
+export interface TwilioSettingsPayload {
+  account_sid: string
+  auth_token: string
+  from_number: string
+}
+
+export const twilioApi = {
+  saveSettings: (data: TwilioSettingsPayload) =>
+    api.post<{ success: boolean; message: string }>('/api-keys/twilio', data),
+}
+
 // Fireflies Transcript API
 export interface FirefliesTranscriptSummary {
   id: string
@@ -880,6 +892,12 @@ export interface EmailQueueItem {
   body: string
   cc?: string[]
   bcc?: string[]
+  channel?: 'email' | 'sms'
+  recipient_phone?: string | null
+  character_count?: number | null
+  sms_segments?: number | null
+  twilio_message_sid?: string | null
+  delivery_status?: string | null
   scheduled_at: string
   sent_at?: string
   status: 'pending' | 'sent' | 'failed' | 'cancelled'
@@ -913,23 +931,23 @@ export interface EmailQueueItem {
   // Fresh Check audit (#178) — populated by the pre-send gate. Null when
   // the email predates Fresh Check or fell through on a cold path.
   fresh_check_action?:
-    | 'continue'
-    | 'cancel_sequence'
-    | 'cancel_email'
-    | 'skip_email'
-    | 'reschedule'
-    | null
+  | 'continue'
+  | 'cancel_sequence'
+  | 'cancel_email'
+  | 'skip_email'
+  | 'reschedule'
+  | null
   fresh_check_rule_triggered?:
-    | 'reply_received'
-    | 'inbox_email'
-    | 'activity_logged'
-    | 'pulse_shift'
-    | 'org_signal'
-    | 'crm_change'
-    | 'flagged_note'
-    | 'dnc'
-    | 'none'
-    | null
+  | 'reply_received'
+  | 'inbox_email'
+  | 'activity_logged'
+  | 'pulse_shift'
+  | 'org_signal'
+  | 'crm_change'
+  | 'flagged_note'
+  | 'dnc'
+  | 'none'
+  | null
   fresh_check_reason?: string | null
   fresh_check_resume_date?: string | null   // ISO date (YYYY-MM-DD)
   // Nested data
@@ -1010,6 +1028,34 @@ export const emailQueueApi = {
     api.post<{ success: boolean; message: string }>(
       `/emails/${emailId}/override-fresh-check`,
     ),
+}
+
+export interface SMSQueueItem extends EmailQueueItem {
+  channel: 'sms'
+  recipient_phone?: string | null
+  character_count?: number | null
+  sms_segments?: number | null
+  twilio_message_sid?: string | null
+  delivery_status?: string | null
+}
+
+export const smsQueueApi = {
+  getAll: (status?: string, approvalStatus?: string, limit = 100, offset = 0) =>
+    api.get<SMSQueueItem[]>('/sms/queue', {
+      params: { status, approval_status: approvalStatus, limit, offset },
+    }),
+
+  approve: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/sms/queue/${id}/approve`),
+
+  edit: (id: number, body: string) =>
+    api.post<SMSQueueItem>(`/sms/queue/${id}/edit`, { body }),
+
+  skip: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/sms/queue/${id}/skip`),
+
+  delete: (id: number) =>
+    api.delete<{ success: boolean; message: string }>(`/sms/queue/${id}`),
 }
 
 // Contacts API (legacy — used by email queue)

@@ -16,6 +16,7 @@ from variables import router as variables_router
 from api_keys import router as api_keys_router
 from fireflies import router as fireflies_router
 from email_queue import router as email_queue_router
+from sms import router as sms_router
 from email_sequences import router as email_sequences_router
 from contacts import router as contacts_router
 from contact_orgs import router as contact_orgs_router
@@ -95,6 +96,7 @@ app.include_router(variables_router, prefix="", tags=["Variables"])
 app.include_router(api_keys_router, prefix="", tags=["API Keys"])
 app.include_router(fireflies_router, prefix="", tags=["Fireflies"])
 app.include_router(email_queue_router, prefix="/emails", tags=["Email Queue"])
+app.include_router(sms_router, prefix="/sms", tags=["SMS"])
 app.include_router(email_sequences_router, prefix="/email-sequences", tags=["Email Sequences"])
 app.include_router(contacts_router, prefix="/contacts", tags=["Contacts"])
 app.include_router(contact_orgs_router, prefix="/contact-organizations", tags=["Contact Organizations"])

@@ -1541,6 +1541,50 @@ async def _generate_fallback_subject(email: "models.EmailQueue") -> str:
 
     return "Follow-up from our meeting"
 
+async def send_queued_sms(db: Session, queue_item: "models.EmailQueue") -> dict:
+    from api_keys import get_twilio_settings
+    from sms_delivery import TwilioAdapter
+
+    user = db.query(models.User).filter(models.User.id == queue_item.user_id).first()
+    if not user:
+        queue_item.status = "failed"
+        queue_item.error_message = "SMS user not found"
+        db.commit()
+        return {"success": False, "error": queue_item.error_message}
+
+    settings = get_twilio_settings(db, user.id)
+    if not settings:
+        queue_item.status = "failed"
+        queue_item.delivery_status = "missing_twilio_settings"
+        queue_item.error_message = "Twilio settings are not configured"
+        db.commit()
+        return {"success": False, "error": queue_item.error_message}
+
+    adapter = TwilioAdapter(
+        account_sid=settings["account_sid"],
+        auth_token=settings["auth_token"],
+        from_number=settings["from_number"],
+    )
+
+    result = await adapter.send_sms(
+        to=queue_item.recipient_phone,
+        body=queue_item.body,
+        status_callback=None,
+    )
+
+    queue_item.twilio_message_sid = result.get("sid")
+    queue_item.delivery_status = result.get("status")
+
+    if result.get("error"):
+        queue_item.status = "failed"
+        queue_item.error_message = result["error"]
+    else:
+        queue_item.status = "sent"
+        queue_item.sent_at = datetime.utcnow()
+
+    db.commit()
+
+    return {"success": not bool(result.get("error")), "result": result}
 
 async def process_email_queue(db: Session) -> dict:
     """
@@ -1588,6 +1632,33 @@ async def process_email_queue(db: Session) -> dict:
                     db.commit()
                     continue
 
+                                # SMS rows use the same queue table, but must not go through
+                # Gmail / Outlook / SMTP email sending logic.
+                if getattr(email, "channel", "email") == "sms":
+                    # Never send SMS unless user approved it first.
+                    if getattr(email, "approval_status", None) != "approved":
+                        logger.info(
+                            f"SMS {email.id} is pending approval; skipping send this cycle"
+                        )
+                        continue
+
+                    result = await send_queued_sms(db, email)
+
+                    if result.get("success"):
+                        stats["sent"] += 1
+                        logger.info(f"SMS {email.id} sent successfully")
+                    else:
+                        stats["failed"] += 1
+                        stats["errors"].append({
+                            "email_id": email.id,
+                            "error": result.get("error", "Unknown SMS send error"),
+                        })
+                        logger.error(
+                            f"SMS {email.id} failed: {result.get('error', 'Unknown SMS send error')}"
+                        )
+
+                    continue    
+                
                 # Pre-send check: re-evaluate CRM condition before sending
                 # New multi-group format takes precedence over old flat fields
                 if email.pre_send_check_config or email.pre_send_check_field:

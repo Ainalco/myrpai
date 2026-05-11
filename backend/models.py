@@ -468,6 +468,15 @@ class EmailQueue(Base):
     body = Column(Text, nullable=False)
     cc = Column(JSON)  # List of CC email addresses
     bcc = Column(JSON)  # List of BCC email addresses
+    
+    channel = Column(String(20), default="email", nullable=False, server_default="email", index=True)
+
+    # SMS-specific fields
+    recipient_phone = Column(String(20), nullable=True)
+    character_count = Column(Integer, nullable=True)
+    sms_segments = Column(Integer, nullable=True)
+    twilio_message_sid = Column(String(100), nullable=True, index=True)
+    delivery_status = Column(String(20), nullable=True)
 
     # Version tracking for edits
     original_subject = Column(String)  # Original AI-generated subject

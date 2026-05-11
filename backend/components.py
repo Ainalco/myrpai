@@ -90,6 +90,13 @@ COMPONENT_TYPES = {
         "category": "action",
         "is_advanced": False  # Available to all users
     },
+    "sms": {
+        "name": "SMS Message",
+        "description": "Send AI-generated SMS follow-ups via Twilio",
+        "icon": "smartphone",
+        "category": "action",
+        "is_advanced": False,
+    },
     "conditional_logic": {
         "name": "Conditional Logic",
         "description": "Filter based on conditions",

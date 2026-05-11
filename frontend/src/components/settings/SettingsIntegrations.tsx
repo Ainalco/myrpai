@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiKeyApi, ApiKeyInfo, authApi, gmailApiService, outlookApiService } from '@/lib/api'
+import { apiKeyApi, ApiKeyInfo, authApi, gmailApiService, outlookApiService, twilioApi } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -165,11 +165,10 @@ const IntegrationCard: React.FC<{
 
       {testResult && (
         <div
-          className={`flex items-start gap-2 p-3 rounded-lg mb-3.5 text-sm ${
-            testResult.success
+          className={`flex items-start gap-2 p-3 rounded-lg mb-3.5 text-sm ${testResult.success
               ? 'bg-green-50 border border-green-200 text-green-700'
               : 'bg-red-50 border border-red-200 text-red-700'
-          }`}
+            }`}
         >
           {testResult.success ? (
             <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -214,6 +213,107 @@ const IntegrationCard: React.FC<{
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+const TwilioIntegrationCard: React.FC = () => {
+  const [accountSid, setAccountSid] = useState('')
+  const [authToken, setAuthToken] = useState('')
+  const [fromNumber, setFromNumber] = useState('')
+  const [showToken, setShowToken] = useState(false)
+  const { toast } = useToast()
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      twilioApi.saveSettings({
+        account_sid: accountSid,
+        auth_token: authToken,
+        from_number: fromNumber,
+      }),
+    onSuccess: () => {
+      toast({ title: 'Success', description: 'Twilio settings saved successfully' })
+      setAccountSid('')
+      setAuthToken('')
+      setFromNumber('')
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.detail || 'Failed to save Twilio settings',
+        variant: 'destructive',
+      })
+    },
+  })
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-[10px] p-5 sm:p-6">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-scurry-orange text-base">📱</span>
+        <span className="font-bold text-[15px]">Twilio SMS</span>
+      </div>
+
+      <p className="text-sm text-gray-500 mb-4">
+        Connect your own Twilio account to send SMS follow-ups through Scurry.
+      </p>
+
+      <div className="space-y-3.5">
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Account SID
+          </label>
+          <input
+            type="text"
+            value={accountSid}
+            onChange={(e) => setAccountSid(e.target.value)}
+            placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            Auth Token
+          </label>
+          <div className="relative">
+            <input
+              type={showToken ? 'text' : 'password'}
+              value={authToken}
+              onChange={(e) => setAuthToken(e.target.value)}
+              placeholder="Enter your Twilio auth token"
+              className="w-full px-3 py-2 pr-9 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+            />
+            <button
+              onClick={() => setShowToken(!showToken)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              type="button"
+            >
+              {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-900 mb-1.5">
+            From Phone Number
+          </label>
+          <input
+            type="text"
+            value={fromNumber}
+            onChange={(e) => setFromNumber(e.target.value)}
+            placeholder="+15551234567"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-scurry-orange/20 focus:border-scurry-orange"
+          />
+        </div>
+      </div>
+
+      <button
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending || !accountSid.trim() || !authToken.trim() || !fromNumber.trim()}
+        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-scurry-orange text-white text-sm font-semibold rounded-lg hover:bg-scurry-orange-hover disabled:opacity-50 transition-colors"
+      >
+        {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Twilio Settings'}
+      </button>
     </div>
   )
 }
@@ -393,9 +493,10 @@ const SettingsIntegrations: React.FC = () => {
           key={service.id}
           service={service}
           existingKey={getExistingKey(service.id)}
-          onRefresh={() => {}}
+          onRefresh={() => { }}
         />
       ))}
+      <TwilioIntegrationCard />
 
       {/* Email Settings */}
       <div className="text-base font-bold mt-2 mb-4">Email Settings</div>

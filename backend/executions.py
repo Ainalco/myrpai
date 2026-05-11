@@ -441,6 +441,61 @@ class ComponentExecutor:
                 "status": "error",
                 "error": f"Summary generation failed: {str(e)}"
             }
+            
+    @staticmethod
+    async def execute_sms(config: dict, input_data: dict, db: Session = None) -> dict:
+        try:
+            if db is None:
+                return {
+                    "status": "error",
+                    "error": "Internal error: db session not provided to execute_sms",
+                }
+
+            workflow_id = input_data.get("workflow_id")
+            if not workflow_id:
+                return {
+                    "status": "error",
+                    "error": "workflow_id not found in input_data",
+                }
+
+            workflow = db.query(models.Workflow).filter(
+                models.Workflow.id == workflow_id
+            ).first()
+
+            if not workflow:
+                return {
+                    "status": "error",
+                    "error": f"Workflow {workflow_id} not found",
+                }
+
+            user = db.query(models.User).filter(
+                models.User.id == workflow.owner_id
+            ).first()
+
+            if not user:
+                return {
+                    "status": "error",
+                    "error": "Workflow owner not found",
+                }
+
+            from sms_service import SMSService
+
+            service = SMSService(db, user)
+
+            return await service.execute_sms_async(
+                config=config,
+                input_data=input_data,
+                workflow_id=workflow_id,
+                execution_id=input_data.get("execution_id"),
+                component_id=config.get("component_id"),
+            )
+
+        except Exception as exc:
+            logger.error("SMS component execution failed: %s", exc, exc_info=True)
+            return {
+                "status": "error",
+                "error": str(exc),
+            }
     
     @staticmethod
     async def execute_email(config: dict, input_data: dict, db: Session = None) -> dict:
@@ -1753,6 +1808,7 @@ Best regards"""
             "input_sources": ComponentExecutor.execute_input_sources,
             "text_generation": ComponentExecutor.execute_text_generation,
             "email": ComponentExecutor.execute_email,
+            "sms": ComponentExecutor.execute_sms,
             "conditional_logic": ComponentExecutor.execute_conditional_logic,
             "ai_filter": ComponentExecutor.execute_ai_filter,
             "action": ComponentExecutor.execute_action,

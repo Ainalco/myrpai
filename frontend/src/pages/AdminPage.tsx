@@ -15,7 +15,7 @@ import { adminApi, AdminUserStats } from '@/lib/api'
 import { formatCost } from '@/lib/cost'
 import { AcornIcon } from '@/components/ui/acorn-icon'
 
-type SortField = 'email' | 'workflow_count' | 'execution_count' | 'total_tokens' | 'cost' | 'acorns_spent' | 'acorn_balance' | 'last_active' | 'org_name'
+type SortField = 'email' | 'workflow_count' | 'execution_count' | 'total_tokens' | 'cost' | 'acorns_spent' | 'acorn_balance' | 'last_active' | 'org_name' | 'current_crm' | 'meeting_tool'
 type SortDir = 'asc' | 'desc'
 
 function formatTokens(n: number): string {
@@ -83,6 +83,9 @@ export default function AdminPage() {
       if (sortField === 'cost') {
         aVal = getUserCost(a)
         bVal = getUserCost(b)
+      } else if (sortField === 'current_crm' || sortField === 'meeting_tool') {
+        aVal = (a as any).onboarding?.[sortField]
+        bVal = (b as any).onboarding?.[sortField]
       } else {
         aVal = (a as any)[sortField]
         bVal = (b as any)[sortField]
@@ -236,6 +239,8 @@ export default function AdminPage() {
                     {[
                       { field: 'org_name' as SortField, label: 'Organization' },
                       { field: 'email' as SortField, label: 'User' },
+                      { field: 'current_crm' as SortField, label: 'CRM' },
+                      { field: 'meeting_tool' as SortField, label: 'Meeting Tool' },
                       { field: 'workflow_count' as SortField, label: 'Workflows' },
                       { field: 'execution_count' as SortField, label: 'Executions' },
                       { field: 'total_tokens' as SortField, label: 'Tokens' },
@@ -270,7 +275,7 @@ export default function AdminPage() {
                           className="bg-scurry-foam/70 border-t-2 border-scurry-gray-border cursor-pointer select-none"
                           onClick={() => toggleOrgCollapse(orgKey)}
                         >
-                          <td className="px-4 py-2" colSpan={9}>
+                          <td className="px-4 py-2" colSpan={11}>
                             <div className="flex items-center gap-2">
                               {isCollapsed ? (
                                 <ChevronDown className="h-3.5 w-3.5 text-scurry-latte" />
@@ -319,6 +324,13 @@ export default function AdminPage() {
                               </div>
                               <span className="text-xs text-scurry-gray-muted">{user.email}</span>
                             </td>
+                            <td className="px-4 py-3 text-scurry-espresso">
+                              {(user as any).onboarding?.current_crm || <span className="text-scurry-gray-muted">—</span>}
+                            </td>
+
+                            <td className="px-4 py-3 text-scurry-espresso">
+                              {(user as any).onboarding?.meeting_tool || <span className="text-scurry-gray-muted">—</span>}
+                            </td>
                             <td className="px-4 py-3 text-scurry-espresso">{user.workflow_count}</td>
                             <td className="px-4 py-3 text-scurry-espresso">{user.execution_count}</td>
                             <td className="px-4 py-3">
@@ -347,12 +359,11 @@ export default function AdminPage() {
                                 <span className="font-medium text-scurry-espresso">
                                   {Math.round(user.acorn_balance || 0).toLocaleString()}
                                 </span>
-                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                                  user.plan === 'redwood' ? 'text-green-700 bg-green-50' :
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${user.plan === 'redwood' ? 'text-green-700 bg-green-50' :
                                   user.plan === 'oak' ? 'text-scurry-orange bg-scurry-orange-light' :
-                                  user.plan === 'seedling' ? 'text-gray-600 bg-gray-100' :
-                                  'text-scurry-latte bg-gray-50'
-                                }`}>
+                                    user.plan === 'seedling' ? 'text-gray-600 bg-gray-100' :
+                                      'text-scurry-latte bg-gray-50'
+                                  }`}>
                                   {user.plan || '—'}
                                 </span>
                               </div>
@@ -365,7 +376,7 @@ export default function AdminPage() {
                   })}
                   {sortedUsers.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-scurry-gray-muted">
+                      <td colSpan={11} className="px-4 py-8 text-center text-scurry-gray-muted">
                         No users found
                       </td>
                     </tr>

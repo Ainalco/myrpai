@@ -25,6 +25,7 @@ import {
   RefreshCw,
   Settings,
   Shuffle,
+  Smartphone,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -68,6 +69,7 @@ const ICON_MAP: Record<string, any> = {
   file: FileText,
   document: FileText,
   mail: Mail,
+  smartphone: Smartphone,
   branch: Shuffle,
   brain: MessageSquare,
   "external-link": Database,
