@@ -407,6 +407,101 @@ const COMPONENT_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
       defaultValue: true,
     },
   ],
+  whatsapp: [
+    {
+      key: "ai_prompt",
+      label: "WhatsApp Instructions",
+      type: "textarea",
+      description:
+        "Tell the AI what kind of WhatsApp message to write. Use /VariableName to insert pipeline variables.",
+      required: true,
+      placeholder:
+        "Write a friendly WhatsApp follow-up based on /Summary. Mention the next step and keep it conversational.",
+    },
+    {
+      key: "recipient_phone_field",
+      label: "Recipient Phone Field",
+      type: "text",
+      description: "Field name where the recipient WhatsApp phone number is stored.",
+      placeholder: "recipient_phone",
+      defaultValue: "recipient_phone",
+    },
+    {
+      key: "send_timing",
+      label: "Send Timing",
+      type: "select",
+      required: true,
+      options: [
+        { value: "immediate", label: "Immediate" },
+        { value: "fixed_delay", label: "Fixed Delay" },
+        { value: "ai_decides", label: "AI Decides" },
+      ],
+      defaultValue: "immediate",
+    },
+    {
+      key: "delay_value",
+      label: "Delay Time",
+      type: "number",
+      description: "Used only for Fixed Delay",
+      placeholder: "30",
+    },
+    {
+      key: "delay_unit",
+      label: "Delay Unit",
+      type: "select",
+      options: [
+        { value: "minutes", label: "Minutes" },
+        { value: "hours", label: "Hours" },
+        { value: "days", label: "Days" },
+      ],
+      defaultValue: "minutes",
+    },
+    {
+      key: "business_hours_only",
+      label: "Business Hours Only",
+      type: "boolean",
+      description: "Send only during business hours",
+      defaultValue: true,
+    },
+    {
+      key: "message_style",
+      label: "Message Style",
+      type: "select",
+      options: [
+        { value: "conversational", label: "Conversational" },
+        { value: "professional", label: "Professional" },
+        { value: "brief", label: "Brief" },
+      ],
+      defaultValue: "conversational",
+    },
+    {
+      key: "fallback_template",
+      label: "Template outside 24h window",
+      type: "select",
+      description:
+        "Used when the customer has not messaged you within the last 24 hours.",
+      options: [
+        { value: "meeting_followup_1", label: "Meeting Follow-up 1" },
+        { value: "meeting_followup_2", label: "Meeting Follow-up 2" },
+        { value: "meeting_followup_3", label: "Meeting Follow-up 3" },
+      ],
+      defaultValue: "meeting_followup_1",
+    },
+    {
+      key: "ai_filter",
+      label: "AI Quality Filter",
+      type: "boolean",
+      description: "AI reviews WhatsApp message before queuing",
+      defaultValue: true,
+    },
+    {
+      key: "timeline_check",
+      label: "Timeline Check",
+      type: "boolean",
+      description: "Check contact history before sending",
+      defaultValue: true,
+    },
+  ],
   text_generation: [
     {
       key: "extraction_points",
@@ -1297,8 +1392,8 @@ const ComponentConfigPanel: React.FC<ComponentConfigPanelProps> = ({
                                       placeholder={field.placeholder}
                                       rows={12}
                                       className={`font-mono text-sm ${errors[field.key]
-                                          ? "border-scurry-red/50"
-                                          : ""
+                                        ? "border-scurry-red/50"
+                                        : ""
                                         }`}
                                       onBlur={() => setEditingAIPrompt(false)}
                                     />

@@ -21,7 +21,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Supported services with their identifiers
-SUPPORTED_SERVICES = ["fireflies", "pipedrive", "twilio"]
+SUPPORTED_SERVICES = ["fireflies", "pipedrive", "twilio", "whatsapp"]
 
 
 # Pydantic models
@@ -51,6 +51,12 @@ class ApiKeyInfo(BaseModel):
 
     class Config:
         from_attributes = True
+        
+class WhatsAppSettingsCreate(BaseModel):
+    phone_number_id: str
+    access_token: str
+    webhook_verify_token: str
+    business_account_id: Optional[str] = None
 
 class TwilioSettingsCreate(BaseModel):
     account_sid: str
@@ -141,6 +147,16 @@ def get_decrypted_api_key(
         logger.error(f"Failed to decrypt API key for user {user_id}, service {service_name}: {e}")
         return None
 
+def get_whatsapp_settings(db: Session, user_id: int) -> Optional[dict]:
+    raw = get_decrypted_api_key(db, user_id, "whatsapp")
+    if not raw:
+        return None
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        logger.error("Invalid WhatsApp settings JSON for user %s", user_id)
+        return None
 
 def get_twilio_settings(db: Session, user_id: int) -> Optional[dict]:
     raw = get_decrypted_api_key(db, user_id, "twilio")
@@ -245,6 +261,46 @@ async def test_pipedrive_api_key(api_key: str) -> tuple[bool, str]:
     except Exception as e:
         logger.error(f"Error testing Pipedrive API key: {e}")
         return False, f"Connection error: {str(e)}"
+    
+#New Whatsapp Api Endpoints
+@router.post("/api-keys/whatsapp")
+async def save_whatsapp_settings(
+    payload: WhatsAppSettingsCreate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        encrypted = encrypt_api_key(payload.json())
+    except ValueError as e:
+        logger.error(f"WhatsApp settings encryption failed for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to encrypt WhatsApp settings",
+        )
+
+    existing = get_user_api_key_record(
+        db,
+        current_user.id,
+        "whatsapp",
+        only_active=False,
+    )
+
+    if existing:
+        existing.encrypted_key = encrypted
+        existing.is_active = True
+        existing.updated_at = datetime.utcnow()
+        db.commit()
+        return {"success": True, "message": "WhatsApp settings updated"}
+
+    db.add(models.ApiKey(
+        user_id=current_user.id,
+        service_name="whatsapp",
+        encrypted_key=encrypted,
+        is_active=True,
+    ))
+    db.commit()
+
+    return {"success": True, "message": "WhatsApp settings saved"}
 
 # New API Endpoints
 @router.post("/api-keys/twilio")

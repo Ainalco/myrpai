@@ -693,6 +693,14 @@ export const apiKeyApi = {
     }),
 }
 
+//WhatsApp
+export interface WhatsAppSettingsPayload {
+  phone_number_id: string
+  access_token: string
+  business_account_id?: string
+  webhook_verify_token: string
+}
+
 //twilioApi
 export interface TwilioSettingsPayload {
   account_sid: string
@@ -703,6 +711,14 @@ export interface TwilioSettingsPayload {
 export const twilioApi = {
   saveSettings: (data: TwilioSettingsPayload) =>
     api.post<{ success: boolean; message: string }>('/api-keys/twilio', data),
+}
+
+export const whatsappApi = {
+  saveSettings: (data: WhatsAppSettingsPayload) =>
+    api.post<{ success: boolean; message: string }>('/api-keys/whatsapp', data),
+
+  getTemplates: () =>
+    api.get('/whatsapp/templates'),
 }
 
 // Fireflies Transcript API
@@ -892,12 +908,16 @@ export interface EmailQueueItem {
   body: string
   cc?: string[]
   bcc?: string[]
-  channel?: 'email' | 'sms'
+  channel?: 'email' | 'sms' | 'whatsapp'
   recipient_phone?: string | null
   character_count?: number | null
   sms_segments?: number | null
   twilio_message_sid?: string | null
   delivery_status?: string | null
+  whatsapp_message_id?: string | null
+  whatsapp_template_name?: string | null
+  is_template_message?: boolean
+  conversation_window_expires_at?: string | null
   scheduled_at: string
   sent_at?: string
   status: 'pending' | 'sent' | 'failed' | 'cancelled'
@@ -1056,6 +1076,49 @@ export const smsQueueApi = {
 
   delete: (id: number) =>
     api.delete<{ success: boolean; message: string }>(`/sms/queue/${id}`),
+}
+
+export interface WhatsAppQueueItem extends EmailQueueItem {
+  channel: 'whatsapp'
+  recipient_phone?: string | null
+  character_count?: number | null
+  delivery_status?: string | null
+  whatsapp_message_id?: string | null
+  whatsapp_template_name?: string | null
+  is_template_message?: boolean
+  conversation_window_expires_at?: string | null
+}
+
+export const whatsappQueueApi = {
+  getAll: (status?: string, approvalStatus?: string, limit = 100, offset = 0) =>
+    api.get<WhatsAppQueueItem[]>('/whatsapp/queue', {
+      params: { status, approval_status: approvalStatus, limit, offset },
+    }),
+
+  approve: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/whatsapp/queue/${id}/approve`),
+
+  edit: (id: number, body: string) =>
+    api.post<WhatsAppQueueItem>(`/whatsapp/queue/${id}/edit`, { body }),
+
+  aiEdit: (id: number, prompt: string) =>
+    api.post<{
+      id: number
+      modified_body: string
+      character_count: number
+      changes_summary: string
+    }>(`/whatsapp/queue/${id}/ai-edit`, { prompt }),
+
+  skip: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/whatsapp/queue/${id}/skip`),
+
+  delete: (id: number) =>
+    api.delete<{ success: boolean; message: string }>(`/whatsapp/queue/${id}`),
+
+  processQueue: () =>
+    api.post<{ success: boolean; processed: number; sent: number; failed: number }>(
+      '/whatsapp/process-queue'
+    ),
 }
 
 // Contacts API (legacy — used by email queue)

@@ -477,6 +477,12 @@ class EmailQueue(Base):
     sms_segments = Column(Integer, nullable=True)
     twilio_message_sid = Column(String(100), nullable=True, index=True)
     delivery_status = Column(String(20), nullable=True)
+    
+    # WhatsApp-specific fields
+    whatsapp_message_id = Column(String(100), nullable=True, index=True)
+    whatsapp_template_name = Column(String(100), nullable=True)
+    is_template_message = Column(Boolean, default=False, nullable=False, server_default="false")
+    conversation_window_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     # Version tracking for edits
     original_subject = Column(String)  # Original AI-generated subject
