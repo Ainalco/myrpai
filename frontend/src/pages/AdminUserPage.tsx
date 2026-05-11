@@ -43,7 +43,10 @@ function formatDateTime(iso?: string | null): string {
     hour12: true,
   })
 }
-
+function displayValue(value?: string | null): string {
+  if (!value || !value.trim()) return '—'
+  return value
+}
 export default function AdminUserPage() {
   const { id } = useParams<{ id: string }>()
   const [preset, setPreset] = useState<number>(0) // 0=all, 7, 30, 90, -1=custom
@@ -99,6 +102,7 @@ export default function AdminUserPage() {
   }
 
   const { user, workflows, usage_by_source, recent_activity } = data
+  const onboarding = (user as any).onboarding ?? {}
 
   const totalCost = data.total_cost
   const totalActualCost = data.total_actual_cost ?? 0
@@ -133,13 +137,12 @@ export default function AdminUserPage() {
                   </span>
                 )}
                 {user.plan && user.plan !== 'none' && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    user.plan === 'redwood' ? 'bg-green-100 text-green-700' :
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${user.plan === 'redwood' ? 'bg-green-100 text-green-700' :
                     user.plan === 'oak' ? 'bg-scurry-orange-light text-scurry-orange' :
-                    user.plan === 'seedling' ? 'bg-gray-100 text-gray-600' :
-                    user.plan === 'trialing' ? 'bg-amber-100 text-amber-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
+                      user.plan === 'seedling' ? 'bg-gray-100 text-gray-600' :
+                        user.plan === 'trialing' ? 'bg-amber-100 text-amber-700' :
+                          'bg-gray-100 text-gray-600'
+                    }`}>
                     {user.plan}
                   </span>
                 )}
@@ -193,11 +196,10 @@ export default function AdminUserPage() {
           <button
             key={opt.value}
             onClick={() => { setPreset(opt.value); setActivityPage(0) }}
-            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-              preset === opt.value
-                ? 'bg-scurry-orange text-white border-scurry-orange'
-                : 'bg-white text-scurry-latte border-scurry-gray-border hover:border-scurry-orange'
-            }`}
+            className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${preset === opt.value
+              ? 'bg-scurry-orange text-white border-scurry-orange'
+              : 'bg-white text-scurry-latte border-scurry-gray-border hover:border-scurry-orange'
+              }`}
           >
             {opt.value === -1 && <Calendar className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />}
             {opt.label}
@@ -256,7 +258,38 @@ export default function AdminUserPage() {
           )
         })}
       </div>
+      {/* Signup Info */}
+      <div className="bg-white rounded-lg border border-scurry-gray-border p-4">
+        <h2 className="text-sm font-semibold text-scurry-espresso mb-4">Signup Info</h2>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            { label: 'Company', value: onboarding.company_name },
+            { label: 'Team Size', value: onboarding.team_size },
+            { label: 'Current CRM', value: onboarding.current_crm },
+            { label: 'Meeting Tool', value: onboarding.meeting_tool },
+            { label: 'Meetings / Week', value: onboarding.meetings_per_week },
+            { label: 'Deal Cycle', value: onboarding.deal_cycle },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-lg border border-scurry-gray-border bg-scurry-foam/40 p-3"
+            >
+              <p className="text-xs text-scurry-latte">{item.label}</p>
+              <p className="mt-1 text-sm font-medium text-scurry-espresso">
+                {displayValue(item.value)}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-scurry-gray-border bg-scurry-foam/40 p-3">
+          <p className="text-xs text-scurry-latte">Challenge</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-scurry-espresso">
+            {displayValue(onboarding.challenge)}
+          </p>
+        </div>
+      </div>
       {/* Token Usage by Source */}
       <div className="bg-white rounded-lg border border-scurry-gray-border p-4">
         <h2 className="text-sm font-semibold text-scurry-espresso mb-4">Usage by Source</h2>

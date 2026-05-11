@@ -71,7 +71,41 @@ def _resolve_costs(
         fallback if actual_missing else stored_cost,
         fallback if billable_missing else stored_billable,
     )
+    
 
+def _setting_value(settings: dict, *keys: str):
+    """Return the first non-empty setting value from possible keys."""
+    for key in keys:
+        value = settings.get(key)
+        if value is None:
+            continue
+
+        if isinstance(value, str):
+            value = value.strip()
+            if value:
+                return value
+        else:
+            return str(value)
+
+    return None
+
+
+def _get_onboarding_info(org: models.Organization | None) -> dict:
+    """Typed admin-safe onboarding fields captured during signup."""
+    settings = org.settings if org and isinstance(org.settings, dict) else {}
+
+    return {
+        "company_name": (
+            _setting_value(settings, "company_name", "company", "companyName")
+            or (org.name if org else None)
+        ),
+        "team_size": _setting_value(settings, "team_size", "teamSize"),
+        "current_crm": _setting_value(settings, "current_crm", "currentCRM", "currentCrm"),
+        "meeting_tool": _setting_value(settings, "meeting_tool", "meetingTool"),
+        "meetings_per_week": _setting_value(settings, "meetings_per_week", "meetingsPerWeek"),
+        "deal_cycle": _setting_value(settings, "deal_cycle", "dealCycle"),
+        "challenge": _setting_value(settings, "challenge"),
+    }
 
 @router.get("/stats/overview")
 async def get_admin_overview(
@@ -135,6 +169,20 @@ async def get_admin_overview(
 
     # Per-user stats
     users = db.query(models.User).all()
+
+    # Prefetch orgs/accounts once to avoid per-user N+1 queries
+    org_ids = list({user.org_id for user in users if user.org_id})
+
+    org_map = {
+        org.id: org
+        for org in db.query(models.Organization).filter(models.Organization.id.in_(org_ids)).all()
+    } if org_ids else {}
+
+    account_map = {
+        account.org_id: account
+        for account in db.query(models.Account).filter(models.Account.org_id.in_(org_ids)).all()
+    } if org_ids else {}
+
     user_stats = []
     for user in users:
         workflow_count = (
@@ -188,18 +236,16 @@ async def get_admin_overview(
         # Get acorn balance for this user's account
         user_acorn_balance = 0.0
         user_plan = "none"
-        if user.org_id:
-            user_account = db.query(models.Account).filter(models.Account.org_id == user.org_id).first()
-            if user_account:
-                user_acorn_balance = float(user_account.acorn_balance)
-                user_plan = user_account.plan_tier.value if user_account.plan_tier else "none"
 
-        # Get org name
-        org_name = None
-        if user.org_id:
-            org = db.query(models.Organization).filter(models.Organization.id == user.org_id).first()
-            if org:
-                org_name = org.name
+        org = org_map.get(user.org_id) if user.org_id else None
+        user_account = account_map.get(user.org_id) if user.org_id else None
+
+        if user_account:
+            user_acorn_balance = float(user_account.acorn_balance)
+            user_plan = user_account.plan_tier.value if user_account.plan_tier else "none"
+
+        org_name = org.name if org else None
+        onboarding = _get_onboarding_info(org)
 
         user_billable = round(user_billable_map.get(user.id, 0.0), 6)
         user_actual = round(user_actual_map.get(user.id, 0.0), 6)
@@ -212,6 +258,7 @@ async def get_admin_overview(
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "org_id": user.org_id,
             "org_name": org_name,
+            "onboarding": onboarding,
             "workflow_count": workflow_count,
             "execution_count": user_executions[0] if user_executions else 0,
             "total_tokens": u_total_tokens,
@@ -224,6 +271,7 @@ async def get_admin_overview(
             "plan": user_plan,
             "last_active": user_executions[1].isoformat() if user_executions and user_executions[1] else None,
         })
+       
 
     return {
         "total_users": total_users,
@@ -632,6 +680,12 @@ async def get_user_stats(
     # Sort by started_at descending
     activity.sort(key=lambda x: x["started_at"] or "", reverse=True)
 
+    org = None
+    if user.org_id:
+        org = db.query(models.Organization).filter(models.Organization.id == user.org_id).first()
+
+    onboarding = _get_onboarding_info(org)
+    
     # Acorn data for this user
     user_acorn_balance = 0.0
     user_plan = "none"
@@ -654,9 +708,13 @@ async def get_user_stats(
             "email": user.email,
             "full_name": user.full_name,
             "is_active": user.is_active,
+            "is_superadmin": user.is_superadmin,
             "created_at": user.created_at.isoformat() if user.created_at else None,
+            "org_id": user.org_id,
+            "org_name": org.name if org else None,
             "plan": user_plan,
             "acorn_balance": round(user_acorn_balance, 2),
+            "onboarding": onboarding,
         },
         "total_tokens": token_totals.total_tokens if token_totals else 0,
         "total_prompt_tokens": token_totals.total_prompt_tokens if token_totals else 0,

@@ -141,7 +141,8 @@ async def list_emails(
         joinedload(models.EmailQueue.sequence_config),
         joinedload(models.EmailQueue.thread_parent_component),
     ).filter(
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     )
 
     if status:
@@ -233,7 +234,8 @@ async def get_email_stats(
 ):
     """Get enhanced email queue statistics"""
     base_query = db.query(models.EmailQueue).filter(
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     )
 
     total = base_query.count()
@@ -298,7 +300,8 @@ async def get_email(
     """Get a specific email from the queue"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -319,7 +322,8 @@ async def cancel_email(
     """Cancel a scheduled email"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -349,7 +353,8 @@ async def retry_email(
     """Retry sending a failed email"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -418,7 +423,8 @@ async def update_email(
     """Update email subject and/or body (manual edit)"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -465,7 +471,8 @@ async def ai_edit_email(
         joinedload(models.EmailQueue.contact)
     ).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -537,7 +544,8 @@ async def revert_email(
     """Revert email to original content"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -585,7 +593,8 @@ async def approve_email(
     """Approve an email for sending"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -623,7 +632,8 @@ async def skip_email(
     """Skip an email (don't send it)"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -655,7 +665,8 @@ async def unskip_email(
     """Move a skipped email back to pending approval"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -687,7 +698,8 @@ async def unapprove_email(
     """Move an approved email back to pending (unapprove)"""
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
-        models.EmailQueue.user_id == current_user.id
+        models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
 
     if not email:
@@ -726,6 +738,7 @@ async def override_fresh_check(
     email = db.query(models.EmailQueue).filter(
         models.EmailQueue.id == email_id,
         models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
     ).first()
     if not email:
         raise HTTPException(status_code=404, detail="Email not found")
@@ -783,6 +796,7 @@ async def approve_all_emails(
     # Get count first
     pending_count = db.query(models.EmailQueue).filter(
         models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
         models.EmailQueue.approval_status == "pending",
         models.EmailQueue.status == "pending"
     ).count()
@@ -793,6 +807,7 @@ async def approve_all_emails(
     # Bulk update
     db.query(models.EmailQueue).filter(
         models.EmailQueue.user_id == current_user.id,
+        models.EmailQueue.channel == "email",
         models.EmailQueue.approval_status == "pending",
         models.EmailQueue.status == "pending"
     ).update({

@@ -249,6 +249,74 @@ def _accumulate_tokens(api_response: dict):
         _usage_records.set(records)
         # Consume-once: reset task after recording to prevent stale labels
         _usage_task.set(None)
+        
+async def generate_sms_message(
+    prompt: str,
+    input_data: Dict[str, Any],
+    max_chars: int,
+    workflow_id: Optional[int] = None,
+    db: Optional[Session] = None,
+) -> str:
+    set_usage_task("SMS Generation")
+
+    api_key = get_claude_client()
+    model = get_active_model()
+
+    data_str = json.dumps(input_data, indent=2, default=str)
+
+    system_prompt = f"""
+You are writing a business follow-up SMS.
+
+CHANNEL: SMS
+HARD CONSTRAINTS:
+- Maximum {max_chars} characters total.
+- Plain text only.
+- No markdown.
+- No HTML.
+- No subject line.
+- Be conversational, direct, and natural.
+- Include opt-out text only if the user prompt asks for it.
+- Return only the SMS body.
+""".strip()
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        payload = {
+            "model": model,
+            "max_tokens": 300,
+            "temperature": 0.3,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": system_prompt,
+                            "cache_control": {"type": "ephemeral"},
+                        },
+                        {
+                            "type": "text",
+                            "text": f"User SMS instructions:\n{prompt}\n\nData:\n{data_str}",
+                        },
+                    ],
+                }
+            ],
+        }
+
+        response = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json=payload,
+        )
+        response.raise_for_status()
+        result = response.json()
+
+    _accumulate_tokens(result)
+
+    return result["content"][0]["text"].strip()
 
 def get_claude_client():
     api_key = os.getenv("ANTHROPIC_API_KEY")

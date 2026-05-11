@@ -50,6 +50,7 @@ import {
   Settings,
   Shuffle,
   Sparkles,
+  Smartphone,
   Zap,
 } from "lucide-react";
 
@@ -58,6 +59,7 @@ const COMPONENT_ICON_MAP: Record<string, React.ComponentType<{ className?: strin
   'file': FileText,
   'document': FileText,
   'mail': Mail,
+  'smartphone': Smartphone,
   'branch': Shuffle,
   'brain': MessageSquare,
   'external-link': Database,
@@ -83,13 +85,13 @@ interface ConfigField {
   key: string;
   label: string;
   type:
-    | "text"
-    | "textarea"
-    | "select"
-    | "boolean"
-    | "password"
-    | "number"
-    | "custom";
+  | "text"
+  | "textarea"
+  | "select"
+  | "boolean"
+  | "password"
+  | "number"
+  | "custom";
   description?: string;
   component?: string;
   defaultValue?: any;
@@ -320,6 +322,89 @@ const COMPONENT_CONFIG_SCHEMAS: Record<string, ConfigField[]> = {
       label: "Use TLS",
       type: "boolean",
       description: "Enable TLS encryption for email sending",
+    },
+  ],
+  sms: [
+    {
+      key: "ai_prompt",
+      label: "SMS Instructions",
+      type: "textarea",
+      description: "Tell the AI what kind of SMS to write. Character limits are enforced automatically.",
+      required: true,
+      placeholder: "Write a short follow-up SMS based on /Summary. Mention the next step and keep it friendly.",
+    },
+    {
+      key: "recipient_phone_field",
+      label: "Recipient Phone Field",
+      type: "text",
+      description: "Field name where the recipient phone number is stored.",
+      placeholder: "recipient_phone",
+    },
+    {
+      key: "send_timing",
+      label: "Send Timing",
+      type: "select",
+      required: true,
+      options: [
+        { value: "immediate", label: "Immediate" },
+        { value: "fixed_delay", label: "Fixed Delay" },
+        { value: "ai_decides", label: "AI Decides" },
+      ],
+    },
+    {
+      key: "delay_value",
+      label: "Delay Time",
+      type: "number",
+      description: "Used only for Fixed Delay",
+      placeholder: "30",
+    },
+    {
+      key: "delay_unit",
+      label: "Delay Unit",
+      type: "select",
+      options: [
+        { value: "minutes", label: "Minutes" },
+        { value: "hours", label: "Hours" },
+        { value: "days", label: "Days" },
+      ],
+    },
+    {
+      key: "business_hours_only",
+      label: "Business Hours Only",
+      type: "boolean",
+      description: "Send only during business hours",
+    },
+    {
+      key: "ai_filter",
+      label: "AI Quality Filter",
+      type: "boolean",
+      description: "AI reviews SMS before queuing",
+      defaultValue: true,
+    },
+    {
+      key: "timeline_check",
+      label: "Timeline Check",
+      type: "boolean",
+      description: "Check contact history before sending",
+      defaultValue: true,
+    },
+    {
+      key: "max_segments",
+      label: "Max SMS Segments",
+      type: "select",
+      description: "1 segment = 160 chars, 2 = 320, 3 = 480",
+      options: [
+        { value: "1", label: "1 segment / 160 chars" },
+        { value: "2", label: "2 segments / 320 chars" },
+        { value: "3", label: "3 segments / 480 chars" },
+      ],
+    },
+    {
+      key: "include_opt_out",
+      label: "Include opt-out text",
+      type: "boolean",
+      description: "Appends Reply STOP to unsubscribe",
+      defaultValue: true,
     },
   ],
   text_generation: [
@@ -1039,7 +1124,7 @@ const ComponentConfigPanel: React.FC<ComponentConfigPanelProps> = ({
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-3 sm:space-y-4"
           >
-            
+
             {/* Text Generation Info Bar */}
             {component.type === "text_generation" && (
               <div className="flex items-center gap-2 p-3 sm:p-4 bg-scurry-foam rounded-xl text-sm text-scurry-latte">
@@ -1127,8 +1212,8 @@ const ComponentConfigPanel: React.FC<ComponentConfigPanelProps> = ({
                     )}
 
                     {field.type === "textarea" &&
-                    field.key === "ai_prompt" &&
-                    component.type === "text_generation" ? (
+                      field.key === "ai_prompt" &&
+                      component.type === "text_generation" ? (
                       <Card className="border-scurry-foam">
                         <Collapsible
                           open={showAIPrompt}
@@ -1211,11 +1296,10 @@ const ComponentConfigPanel: React.FC<ComponentConfigPanelProps> = ({
                                       }}
                                       placeholder={field.placeholder}
                                       rows={12}
-                                      className={`font-mono text-sm ${
-                                        errors[field.key]
+                                      className={`font-mono text-sm ${errors[field.key]
                                           ? "border-scurry-red/50"
                                           : ""
-                                      }`}
+                                        }`}
                                       onBlur={() => setEditingAIPrompt(false)}
                                     />
 
@@ -1308,8 +1392,8 @@ const ComponentConfigPanel: React.FC<ComponentConfigPanelProps> = ({
                                   <div className="bg-scurry-foam/30 rounded-lg p-4 border border-scurry-foam">
                                     {renderAIPromptWithVariables(
                                       watchedValues["ai_prompt"] ||
-                                        field.defaultValue ||
-                                        ""
+                                      field.defaultValue ||
+                                      ""
                                     )}
                                   </div>
                                 )}

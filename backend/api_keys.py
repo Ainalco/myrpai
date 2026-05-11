@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from pydantic import BaseModel, Field
 import logging
+import json
 import httpx
 
 from database import get_db
@@ -20,7 +21,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Supported services with their identifiers
-SUPPORTED_SERVICES = ["fireflies", "pipedrive"]
+SUPPORTED_SERVICES = ["fireflies", "pipedrive", "twilio"]
 
 
 # Pydantic models
@@ -51,7 +52,11 @@ class ApiKeyInfo(BaseModel):
     class Config:
         from_attributes = True
 
-
+class TwilioSettingsCreate(BaseModel):
+    account_sid: str
+    auth_token: str
+    from_number: str
+    
 class ApiKeyTestRequest(BaseModel):
     """Request model for testing an API key"""
     service_name: str
@@ -134,6 +139,18 @@ def get_decrypted_api_key(
         return decrypted_key
     except Exception as e:
         logger.error(f"Failed to decrypt API key for user {user_id}, service {service_name}: {e}")
+        return None
+
+
+def get_twilio_settings(db: Session, user_id: int) -> Optional[dict]:
+    raw = get_decrypted_api_key(db, user_id, "twilio")
+    if not raw:
+        return None
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        logger.error("Invalid Twilio settings JSON for user %s", user_id)
         return None
 
 
@@ -229,6 +246,45 @@ async def test_pipedrive_api_key(api_key: str) -> tuple[bool, str]:
         logger.error(f"Error testing Pipedrive API key: {e}")
         return False, f"Connection error: {str(e)}"
 
+# New API Endpoints
+@router.post("/api-keys/twilio")
+async def save_twilio_settings(
+    payload: TwilioSettingsCreate,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        encrypted = encrypt_api_key(payload.json())
+    except ValueError as e:
+        logger.error(f"Twilio settings encryption failed for user {current_user.id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to encrypt Twilio settings",
+        )
+
+    existing = get_user_api_key_record(
+        db,
+        current_user.id,
+        "twilio",
+        only_active=False,
+    )
+
+    if existing:
+        existing.encrypted_key = encrypted
+        existing.is_active = True
+        existing.updated_at = datetime.utcnow()
+        db.commit()
+        return {"success": True, "message": "Twilio settings updated"}
+
+    db.add(models.ApiKey(
+        user_id=current_user.id,
+        service_name="twilio",
+        encrypted_key=encrypted,
+        is_active=True,
+    ))
+    db.commit()
+
+    return {"success": True, "message": "Twilio settings saved"}
 
 # API Endpoints
 @router.post("/api-keys", response_model=ApiKeyInfo, status_code=status.HTTP_201_CREATED)

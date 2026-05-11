@@ -269,6 +269,7 @@ async def register(user_data: UserCreate, db=Depends(get_db)):
         slug=slug,
         domain=user_data.email.split("@")[1],
         settings={
+            "company_name": user_data.company_name,
             "team_size": user_data.team_size,
             "current_crm": user_data.current_crm,
             "meeting_tool": user_data.meeting_tool,
